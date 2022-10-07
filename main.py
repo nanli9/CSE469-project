@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import struct
+import sys
 #self define node class
 class Node(object):
 	def __init__(self):
@@ -70,47 +71,73 @@ class LinkedList:
 			node = node.next
 	def init(self):
 		temp_node=self.head
-		
+	def checkin(self,item_id):
+		temp_node=self.head
+	def checkout(self,item_id):
+		temp_node=self.head
+#initial the linkedlist first
+ll = LinkedList()	
 #parse the input 
 input=input()
 inputArray=input.split(" ")
 if(inputArray[0]=="bchoc"):
-    #add commands
-    if(inputArray[1]=="add"):
-        print("perform add command")
-        if(inputArray[2]=="-c"):
-            case_id=inputArray[3]
-            if(inputArray[4]=="-i"):
-                item_id=inputArray[5]
-                print(case_id,item_id)
-                #call linkedlist add method here
-            else:
-                sys.exit("wrong argument")
-        else:
-            sys.exit("wrong argument")
-    #checkout command
-    elif(inputArray[1]=="checkout"):
-        print("perform checkout command")
-    elif(inputArray[1]=="checkin"):
-        print("perform checkin command")
-    elif(inputArray[1]=="log"):
-        print("perform log command")
-    elif(inputArray[1]=="remove"):
-        print("perform remove command")
-    elif(inputArray[1]=="init"):
-        print("perform init command")
-    elif(inputArray[1]=="verify"):
-        print("perform verify command")
-    else:
-        sys.exit("unexpected commands")
+    	#add commands
+	if(inputArray[1]=="add"):
+		print("perform add command")
+		if(inputArray[2]=="-c"):
+			case_id=inputArray[3]
+			item_list=[]		
+			for i in range(4,len(inputArray),2):
+				print("another item")
+				if(inputArray[i]=="-i"):
+					item_list.append(inputArray[i+1])		
+				else:
+					sys.exit("wrong argument")
+                		#call linkedlist add method here
+			print(item_list)
+		else:
+			sys.exit("wrong argument")
+    	#checkout command
+	elif(inputArray[1]=="checkout"):
+		print("perform checkout command")
+		if(len(inputArray)==4 and inputArray[2]=="-i"):
+			item_id=inputArray[3]
+			#call checkout command here
+		else:
+			sys.exit("wrong argument")
+	elif(inputArray[1]=="checkin"):
+		print("perform checkin command")
+		if(len(inputArray)==4 and inputArray[2]=="-i"):
+			item_id=inputArray[3]
+			#call checkin command here
+		else:
+			sys.exit("wrong argument")
+	elif(inputArray[1]=="log"):
+		if(len(inputArray)>2):
+			if(inputArray[2]=="-r"):
+				print("log the reverse order")
+			
+		
+		print("perform log command")
+		#call log command here
+	elif(inputArray[1]=="remove"):
+		print("perform remove command")
+		#call remove command here
+	elif(inputArray[1]=="init"):
+		print("perform init command")
+		#call init command here
+	elif(inputArray[1]=="verify"):
+		print("perform verify command")
+		#call verify command here
+	else:
+		sys.exit("unexpected commands")
 else:
-    sys.exit("unexpected input format")
+	sys.exit("unexpected input format")
 print(inputArray)
 
 #pack the data should be stored in bchoc
 #test for linkedlist methods
 print("test for linkedList method")
-ll = LinkedList()
 ll.append(1)
 ll.append(2)
 ll.reverse()
