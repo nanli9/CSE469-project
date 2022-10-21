@@ -108,19 +108,22 @@ class LinkedList:
 
 
 # parse the input
-input = input()
-inputArray = input.split(" ")
-if inputArray[0] == "bchoc":
+bchoc_file=open("bchoc_file.txt","a")
+inputArray = sys.argv
+print(inputArray)
+if inputArray[0] == "./bchoc":
     # add commands
     if inputArray[1] == "add":
         print("perform add command")
         if inputArray[2] == "-c":
             case_id = inputArray[3]
+            bchoc_file.write(case_id)
             item_list = []
             for i in range(4, len(inputArray), 2):
                 print("another item")
                 if inputArray[i] == "-i":
                     item_list.append(inputArray[i + 1])
+                    #bchoc_file.write(inputArray[i + 1])
                 else:
                     sys.exit("wrong argument")
                     # call linkedlist add method here
@@ -164,7 +167,7 @@ if inputArray[0] == "bchoc":
 else:
     sys.exit("unexpected input format")
 print(inputArray)
-
+bchoc_file.close()
 # pack the data should be stored in bchoc
 # test for linkedlist methods
 # print("test for linkedList method")
