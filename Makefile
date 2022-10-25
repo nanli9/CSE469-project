@@ -3,4 +3,4 @@ bchoc: main.py
 	chmod +x bchoc
 clean:
 	rm bchoc
-	rm bchoc_file.txt
+	rm bchoc_file.bin

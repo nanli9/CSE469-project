@@ -21,6 +21,7 @@ def checkin(item_id):
 	print(item_id)
 	
 def log(num_entries,case_id,item_id,reverse):
+	#if num_entries is -1 then all log should be printed
 	print(num_entries)
 	print(case_id)
 	print(item_id)
@@ -31,9 +32,7 @@ def remove(item_id,reason,owner):
 	print(reason)
 	print(owner)
 	
-def reverse():
-	print("reverse")
-
+	
 def init():
 	print("init")
 	
@@ -81,7 +80,7 @@ if inputArray[0] == "./bchoc":
         else:
             sys.exit(1)
     elif inputArray[1] == "log":
-        num_entries=0
+        num_entries=-1
         case_id=""
         item_id=""
         reverse=False
