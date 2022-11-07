@@ -162,6 +162,7 @@ def create_listOfItems(data):
     while index <= (len(data) - 1):
         # pre hash value
         # print(struct.unpack("32s", data[index : index + 32])[0])
+        pre_hash=(struct.unpack("32s", data[index + 0 : index + 32])[0]).decode("utf-8")
         dateTime = datetime.datetime.fromtimestamp(
             struct.unpack("d", data[index + 32 : index + 40])[0]
         )
@@ -177,10 +178,11 @@ def create_listOfItems(data):
             .split("'")[1]
         )
         length = struct.unpack("I", data[index + 72 : index + 76])[0]
+        cur_hash=hashlib.sha256(data[index:index+76+length]).hexdigest()
         index = index + length + 76
         # print("len: ", length)
         # print("index: ", index)
-        listOfEntries.append((case_id, item_id, status, str(dateTime)))
+        listOfEntries.append((case_id, item_id, status, str(dateTime),pre_hash,cur_hash))
         # print(
         #     f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {dateTime}\n\n"
         # )
@@ -229,6 +231,28 @@ def init():
 
 def verify():
     print("verify")
+    #1:missing parent, 2:same parent, 3:unmatch checksum,4:transactions after remove
+    error_code=0
+    bchoc_file_read = open(file_path, "rb")
+    data = bchoc_file_read.read()
+    bad_block_index=0
+    block_info=create_listOfItems(data)[1:]
+    length=len(block_info)
+    print(block_info)
+    for i in range(len(block_info)):
+        print(block_info[i][4])
+        for j in range(i,len(block_info)):
+            if block_info[i][4]==block_info[j][4]:
+                error_code=1
+                bad_block_index=j
+    print(error_code)
+    print("Transactions in blockchain: ",length)
+    if(error_code==0):
+        print("clean")
+    elif error_code==1:
+        print("State of blockchain: ERROR")
+        print(bad_block_index)
+    
 
 
 # parse the input
