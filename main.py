@@ -35,13 +35,13 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         #print("len: ", length)
         # print("index: ", index)
     bchoc_file_read.close()
-    pre_sha256 = hashlib.sha256(data[index - length - 76 :]).hexdigest()
-    # print(pre_sha256)
+    pre_sha256 = bytes.fromhex(hashlib.sha256(data[index - length - 76 :]).hexdigest())
+    print(pre_sha256)
+    print(pre_sha256.hex())
 
     bchoc_file = open(file_path, "ab")
     print("Case: ", case_id)
     for i in item_list:
-        pre_hash = bytes(pre_sha256, "utf-8")
         dt = datetime.datetime.now()
         time_stamp = dt.timestamp()
         item_id = int(i)
@@ -49,7 +49,7 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         bchoc_file.write(
             struct.pack(
                 "32sd16sI12sI",
-                pre_hash,
+                pre_sha256,
                 time_stamp,
                 bytes(case_id, "utf-8"),
                 item_id,
@@ -162,7 +162,7 @@ def create_listOfItems(data):
     while index <= (len(data) - 1):
         # pre hash value
         # print(struct.unpack("32s", data[index : index + 32])[0])
-        pre_hash=(struct.unpack("32s", data[index + 0 : index + 32])[0]).decode("utf-8")
+        pre_hash=(struct.unpack("32s", data[index + 0 : index + 32])[0]).hex()
         dateTime = datetime.datetime.fromtimestamp(
             struct.unpack("d", data[index + 32 : index + 40])[0]
         )
@@ -240,18 +240,19 @@ def verify():
     length=len(block_info)
     print(block_info)
     for i in range(len(block_info)):
-        print(block_info[i][4])
-        for j in range(i,len(block_info)):
+        print("pre_hash: ",block_info[i][4])
+        for j in range(i+1,len(block_info)):
             if block_info[i][4]==block_info[j][4]:
                 error_code=1
                 bad_block_index=j
+        print("cur_hash: ", block_info[i][5])
     print(error_code)
     print("Transactions in blockchain: ",length)
     if(error_code==0):
         print("clean")
     elif error_code==1:
         print("State of blockchain: ERROR")
-        print(bad_block_index)
+        print(block_info[bad_block_index])
     
 
 
