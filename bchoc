@@ -29,8 +29,8 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         index = index + length + 76
     bchoc_file_read.close()
     pre_sha256 = bytes.fromhex(hashlib.sha256(data[index - length - 76 :]).hexdigest())
-    # print(pre_sha256)
-    # print(pre_sha256.hex())
+    print(pre_sha256)
+    print(pre_sha256.hex())
 
     bchoc_file = open(file_path, "ab")
     print("Case: ", case_id)
@@ -232,7 +232,6 @@ def verify():
     print("Transactions in blockchain: ",length)
     if(error_code==0):
         print("clean")
-        return 0
     elif error_code==31:
         print("State of blockchain: ERROR")
         print(block_info[bad_block_index])
@@ -272,7 +271,7 @@ if inputArray[0] == "./bchoc":
         if exit_code:
             sys.exit(exit_code)
     elif inputArray[1] == "checkin":
-        # print("perform checkin command")
+        print("perform checkin command")
         if len(inputArray) == 4 and inputArray[2] == "-i":
             item_id = inputArray[3]
             # call checkin command here
@@ -303,18 +302,14 @@ if inputArray[0] == "./bchoc":
         owner = ""
         if len(inputArray) > 6:
             owner = inputArray[7]
-        exit_code = remove(item_id, reason,owner)
-        if exit_code :
-            sys.exit(1)
+        remove(item_id, reason,owner)
     elif inputArray[1] == "init":
         # call the Linked list constructor to check the LL or create intial block
         init()
     elif inputArray[1] == "verify":
         print("perform verify command")
         # call verify command here
-        exit_code = verify()
-        if exit_code:
-                sys.exit(exit_code)
+        verify()
     else:
         sys.exit(1)
 else:
