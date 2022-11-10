@@ -25,15 +25,8 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
     index = 0
     length = 0
     while index <= (len(data) - 1):
-        # print(
-        #     datetime.datetime.fromtimestamp(
-        #         struct.unpack("d", data[index + 32 : index + 40])[0]
-        #     )
-        # )
         length = struct.unpack("I", data[index + 72 : index + 76])[0]
         index = index + length + 76
-        #print("len: ", length)
-        # print("index: ", index)
     bchoc_file_read.close()
     pre_sha256 = bytes.fromhex(hashlib.sha256(data[index - length - 76 :]).hexdigest())
     print(pre_sha256)
@@ -144,15 +137,6 @@ def log(num_entries, ip_case_id, ip_item_id, reverse):
         )
         num_entries -= 1
 
-    # print("*************")
-    # print(num_entries)
-    # print(case_id)
-    # print(item_id)
-    # print(reverse)
-    # a = struct.unpack("d", data[32:40])
-    # timestamp = datetime.datetime.fromtimestamp(a[0])
-    # print(timestamp)
-    # print(struct.unpack("I", data[72:76])[0])
     bchoc_file.close()
 
 
@@ -183,9 +167,7 @@ def create_listOfItems(data):
         # print("len: ", length)
         # print("index: ", index)
         listOfEntries.append((case_id, item_id, status, str(dateTime),pre_hash,cur_hash))
-        # print(
-        #     f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {dateTime}\n\n"
-        # )
+        
     return listOfEntries
 
 
@@ -231,7 +213,7 @@ def init():
 
 def verify():
     print("verify")
-    #1:missing parent, 2:same parent, 3:unmatch checksum,4:transactions after remove
+    #31:missing parent, 32:same parent, 33:unmatch checksum,34:transactions after remove
     error_code=0
     bchoc_file_read = open(file_path, "rb")
     data = bchoc_file_read.read()
@@ -243,17 +225,17 @@ def verify():
         print("pre_hash: ",block_info[i][4])
         for j in range(i+1,len(block_info)):
             if block_info[i][4]==block_info[j][4]:
-                error_code=1
+                error_code=31
                 bad_block_index=j
         print("cur_hash: ", block_info[i][5])
     print(error_code)
     print("Transactions in blockchain: ",length)
     if(error_code==0):
         print("clean")
-    elif error_code==1:
+    elif error_code==31:
         print("State of blockchain: ERROR")
         print(block_info[bad_block_index])
-    
+        return 31
 
 
 # parse the input
