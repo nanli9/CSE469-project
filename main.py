@@ -221,7 +221,6 @@ def init():
 
 
 def verify():
-    print("verify")
     #31:missing parent, 32:same parent, 33:unmatch checksum,34:transactions after remove
     error_code=0
     bchoc_file_read = open(file_path, "rb")
@@ -229,11 +228,9 @@ def verify():
     bad_block_index=0
     block_info=create_listOfItems(data)[0:]
     length=len(block_info)
-    for block in block_info :    
-        print(block[1]," : ",block[4], " : ",block[5],"\n")
     errorFound = False
     removedItems = []
-    for i in range(len(block_info)):
+    for i in range(len(block_info)-1):
         if errorFound :
             break
 
@@ -253,18 +250,16 @@ def verify():
         
         # print("curr_hash: ",block_info[i][4])
         # print("pre_hash: ",block_info[i][4])
-        for j in range(i+1,len(block_info)):          
+            j = i+1          
             if block_info[i][4]==block_info[j][4]:
                 error_code=31
                 bad_block_index=j
-                errorFound = True
                 break
             
             
             if block_info[i][5]!=block_info[j][4]:
                 error_code=32
                 bad_block_index=j
-                errorFound = True
                 break 
                             
         # print("cur_hash: ", block_info[i][5])
@@ -369,7 +364,6 @@ if inputArray[0] == "./bchoc":
         # call the Linked list constructor to check the LL or create intial block
         init()
     elif inputArray[1] == "verify":
-        print("perform verify command")
         # call verify command here
         exit_code = verify()
         if exit_code:
