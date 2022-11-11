@@ -39,18 +39,25 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         time_stamp = dt.timestamp()
         item_id = int(i)
         state = bytes(ip_state, "utf-8")
-        bchoc_file.write(
-            struct.pack(
+        packed_data = struct.pack(
                 "32sd16sI12sI",
                 pre_sha256,
                 time_stamp,
                 bytes(case_id, "utf-8"),
                 item_id,
                 state,
-                data_length,
+                int(data_length),
             )
+        bchoc_file.write(packed_data)
+        # print(type(packed_data))
+        print(message,i)
+        unpacked_data = str(pre_sha256)+str(time_stamp)+str(bytes(case_id,"utf-8"))+str(item_id)+ip_state+str(data_length)
+        unpacked_data = bytes(unpacked_data,"utf-8")
+        pre_sha256 = bytes.fromhex(
+            hashlib.sha256(unpacked_data).hexdigest()
         )
-        print(message, i)
+        
+        
         print(f"  Status: {ip_state}")
         if(info!=""):
             bchoc_file.write(bytes(info, "utf-8"))
@@ -83,7 +90,7 @@ def checkout(item_id):
             print("Error: Cannot check out a checked out item. Must check it in first.")
             return 22
         else:
-            append(case_id, [item_id], "CHECKEDOUT", "Checked out item: ")
+            append(case_id, [item_id], ip_state = "CHECKEDOUT",message="Checked out item: ")
             return 0
 
 
@@ -131,9 +138,11 @@ def log(num_entries, ip_case_id, ip_item_id, reverse):
         case_id = item[0]
         item_id = item[1]
         status = item[2]
-        dateTime = item[3]
+        time_stamp = item[3]
+        
+        timeToShow = str(time_stamp).replace(" ","T")+"Z"
         print(
-            f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {dateTime}\n\n"
+            f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {timeToShow}\n\n"
         )
         num_entries -= 1
 
@@ -166,7 +175,7 @@ def create_listOfItems(data):
         index = index + length + 76
         # print("len: ", length)
         # print("index: ", index)
-        listOfEntries.append((case_id, item_id, status, str(dateTime),pre_hash,cur_hash))
+        listOfEntries.append((case_id, item_id, status, dateTime,pre_hash,cur_hash,length))
         
     return listOfEntries
 
@@ -218,25 +227,75 @@ def verify():
     bchoc_file_read = open(file_path, "rb")
     data = bchoc_file_read.read()
     bad_block_index=0
-    block_info=create_listOfItems(data)[1:]
+    block_info=create_listOfItems(data)[0:]
     length=len(block_info)
-    print(block_info)
+    for block in block_info :    
+        print(block[1]," : ",block[4], " : ",block[5],"\n")
+    errorFound = False
+    removedItems = []
     for i in range(len(block_info)):
-        print("pre_hash: ",block_info[i][4])
-        for j in range(i+1,len(block_info)):
+        if errorFound :
+            break
+
+        # cur_hash=hashlib.sha256(
+        #     (str(block_info[i][4])+str(block_info[i][3])+str(block_info[i][0])+str(block_info[i][1])+str(block_info[i][2])+str(block_info[i][6]))
+        #     .encode()).hexdigest()
+            
+        if block_info[i][2] in ["RELEASED", "DISPOSED", "DESTROYED"]:
+            removedItems.append(block_info[1])
+            
+        elif block_info[i][2] in ["CHECKEDIN", "CHECKEDOUT"] :
+            if block_info[i][2] in removedItems :
+                error_code=34
+                bad_block_index=i
+                break
+        
+        
+        # print("curr_hash: ",block_info[i][4])
+        # print("pre_hash: ",block_info[i][4])
+        for j in range(i+1,len(block_info)):          
             if block_info[i][4]==block_info[j][4]:
                 error_code=31
                 bad_block_index=j
-        print("cur_hash: ", block_info[i][5])
-    print(error_code)
+                errorFound = True
+                break
+            
+            
+            if block_info[i][5]!=block_info[j][4]:
+                error_code=32
+                bad_block_index=j
+                errorFound = True
+                break 
+                            
+        # print("cur_hash: ", block_info[i][5])
+    # print(error_code)
     print("Transactions in blockchain: ",length)
     if(error_code==0):
-        print("clean")
+        print("State of blockchain: CLEAN")
         return 0
     elif error_code==31:
         print("State of blockchain: ERROR")
-        print(block_info[bad_block_index])
+        print("Bad block: ",block_info[bad_block_index])
+        print("Parent block: ",block_info[bad_block_index-1])
+        print("Two blocks were found with the same parent.")
         return 31
+    elif error_code==32:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Parent block: NOT FOUND")
+        return 32
+    elif error_code==33:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Block contents do not match block checksum.")
+        return 33
+    
+    elif error_code==34:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Item checked out or checked in after removal from chain.")
+        return 34
+    
 
 
 # parse the input
