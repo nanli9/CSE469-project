@@ -51,13 +51,13 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         bchoc_file.write(packed_data)
         # print(type(packed_data))
         print(message,i)
-        unpacked_data = str(pre_sha256)+str(time_stamp)+str(bytes(case_id,"utf-8"))+str(item_id)+ip_state+str(data_length)
-        unpacked_data = bytes(unpacked_data,"utf-8")
-        pre_sha256 = bytes.fromhex(
-            hashlib.sha256(unpacked_data).hexdigest()
-        )
-        
-        
+        #unpacked_data = str(pre_sha256)+str(time_stamp)+str(bytes(case_id,"utf-8"))+str(item_id)+ip_state+str(data_length)
+        pre_sha256=bytes.fromhex(hashlib.sha256(packed_data).hexdigest())
+        #unpacked_data = bytes(unpacked_data,"utf-8")
+        #pre_sha256 = bytes.fromhex(
+           # hashlib.sha256(unpacked_data).hexdigest()
+        #)
+        #print(pre_sha256.hex())
         print(f"  Status: {ip_state}")
         if(info!=""):
             bchoc_file.write(bytes(info, "utf-8"))
