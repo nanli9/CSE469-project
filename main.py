@@ -128,9 +128,13 @@ def checkin(item_id):
     # 1 -> checkin error
     #   1 : does not exist error
     #   2 : item already removed error
+    #   3 : cannot checkin already checked in item
     if status:
         if status in ["RELEASED", "DISPOSED", "DESTROYED"]:
             print("Error: Cannot check in a removed item.")
+            return 12
+        elif status == "CHECKEDIN" :
+            print("Error: Cannot check in an already checked in item.")
             return 12
         else:
             append(case_id, [item_id])
@@ -220,10 +224,12 @@ def init():
     if os.path.exists(file_path) == False:
         print("Blockchain file not found. Created INITIAL block.")
         dt = datetime.datetime.now()
-        time_stamp = 0
+        time_stamp = 0.0
+        pre_hash = 0
+        case_id = 0
         # print(time_stamp)
-        pre_hash =bytes("0","utf-8")
-        case_id = bytes("0", "utf-8")
+        pre_hash = pre_hash.to_bytes(1, 'little') 
+        case_id = case_id.to_bytes(1, 'little') 
         item_id = 0
         state = bytes("INITIAL", "utf-8")
         data_length = format(14, "b")
@@ -236,7 +242,12 @@ def init():
         bchoc_file.write(b"\0")
         bchoc_file.close()
     else:
-        print("Blockchain file found with INITIAL block.")
+        error_code = verify()
+        if verify :
+            return error_code
+        else :
+            print("Blockchain file found with INITIAL block.")
+            return 0
 
 
 def verify():
@@ -249,22 +260,54 @@ def verify():
     length=len(block_info)
     errorFound = False
     removedItems = []
+    checkedInItems = []
+    checkedOutItems = []
     for i in range(len(block_info)-1):
-        if errorFound :
-            break
+        item_id = block_info[i][1]
 
         # cur_hash=hashlib.sha256(
         #     (str(block_info[i][4])+str(block_info[i][3])+str(block_info[i][0])+str(block_info[i][1])+str(block_info[i][2])+str(block_info[i][6]))
         #     .encode()).hexdigest()
             
         if block_info[i][2] in ["RELEASED", "DISPOSED", "DESTROYED"]:
-            removedItems.append(block_info[1])
-            
-        elif block_info[i][2] in ["CHECKEDIN", "CHECKEDOUT"] :
-            if block_info[i][2] in removedItems :
+            if item_id in removedItems :
                 error_code=34
                 bad_block_index=i
                 break
+            if (item_id not in checkedInItems and  item_id not in checkedOutItems) :
+                error_code=34
+                bad_block_index=i
+                break
+            removedItems.append(item_id)
+            if item_id in checkedInItems :
+                checkedInItems.remove(item_id)
+            if item_id in checkedOutItems :
+                checkedOutItems.remove(item_id)
+            
+        elif block_info[i][2] == "CHECKEDIN" :
+            if item_id in removedItems :
+                error_code=34
+                bad_block_index=i
+                break
+            if item_id in checkedInItems :
+                error_code=34
+                bad_block_index=i
+                break
+            checkedInItems.append(item_id)
+            if item_id in checkedOutItems :
+                checkedOutItems.remove(item_id)
+        
+        elif block_info[i][2] == "CHECKEDOUT" :
+            if item_id in removedItems :
+                error_code=34
+                bad_block_index=i
+                break
+            if item_id not in checkedInItems :
+                error_code=34
+                bad_block_index=i
+                break
+            checkedInItems.remove(item_id)
+            checkedOutItems.append(item_id)    
         
         
         # print("curr_hash: ",block_info[i][4])
@@ -331,6 +374,8 @@ if inputArray[0] == "./bchoc":
                     # bchoc_file.write(inputArray[i + 1])
                 else:
                     sys.exit(1)
+            if len(item_list) == 0 :
+                sys.exit(1)
             # print(item_list)
             error_code = append(case_id, item_list,addFlag=True)
             if error_code :
@@ -382,8 +427,12 @@ if inputArray[0] == "./bchoc":
         if exit_code :
             sys.exit(1)
     elif inputArray[1] == "init":
+        if len(inputArray) > 2 :
+            sys.exit(1)
         # call the Linked list constructor to check the LL or create intial block
-        init()
+        exit_code = init()
+        if exit_code :
+            sys.exit(exit_code)
     elif inputArray[1] == "verify":
         # call verify command here
         exit_code = verify()
