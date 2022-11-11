@@ -18,10 +18,21 @@ file_path = os.environ["BCHOC_FILE_PATH"]
 # we need to implement these functions
 
 
-def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info=""):
+def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info="",addFlag=False):
     # get prehash value
+    if os.path.exists(file_path) == False:
+        init()
+    error_code = 0
     bchoc_file_read = open(file_path, "rb")
     data = bchoc_file_read.read()
+    items = create_listOfItems(data)
+    removed_items = []
+    added_items = []
+    for item in items :
+        added_items.append(str(item[1]))
+        if item[2] in ["RELEASED", "DISPOSED", "DESTROYED"] :
+            removed_items.append(str(item[1]))
+    
     index = 0
     length = 0
     while index <= (len(data) - 1):
@@ -38,6 +49,13 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         dt = datetime.datetime.now()
         time_stamp = dt.timestamp()
         item_id = int(i)
+        if str(item_id) in removed_items :
+            error_code = 41
+            continue
+        elif str(item_id) in added_items and addFlag :
+            error_code = 42
+            continue 
+        
         state = bytes(ip_state, "utf-8")
         packed_data = struct.pack(
                 "32sd16sI12sI",
@@ -64,6 +82,7 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
             print("  Owner info: ",info)
         print("  Time of action:",str(datetime.datetime.fromtimestamp(time_stamp)).replace(" ","T")+"Z")
     bchoc_file.close()
+    return error_code
 
 
 def checkout(item_id):
@@ -201,11 +220,11 @@ def init():
     if os.path.exists(file_path) == False:
         print("Blockchain file not found. Created INITIAL block.")
         dt = datetime.datetime.now()
-        time_stamp = dt.timestamp()
+        time_stamp = 0
         # print(time_stamp)
-        pre_hash = bytes("None", "utf-8")
-        case_id = bytes("None", "utf-8")
-        item_id = bytes("None", "utf-8")
+        pre_hash =bytes("0","utf-8")
+        case_id = bytes("0", "utf-8")
+        item_id = 0
         state = bytes("INITIAL", "utf-8")
         data_length = format(14, "b")
         data = bytes("Initial block", "utf-8")
@@ -313,7 +332,9 @@ if inputArray[0] == "./bchoc":
                 else:
                     sys.exit(1)
             # print(item_list)
-            append(case_id, item_list)
+            error_code = append(case_id, item_list,addFlag=True)
+            if error_code :
+                sys.exit(error_code)    
         else:
             sys.exit(1)
     # checkout command
