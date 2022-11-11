@@ -29,9 +29,9 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
     removed_items = []
     added_items = []
     for item in items :
-        added_items.append(str(item[1]))
+        added_items.append(item[1])
         if item[2] in ["RELEASED", "DISPOSED", "DESTROYED"] :
-            removed_items.append(str(item[1]))
+            removed_items.append(item[1])
     
     index = 0
     length = 0
@@ -49,10 +49,10 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         dt = datetime.datetime.now()
         time_stamp = dt.timestamp()
         item_id = int(i)
-        if str(item_id) in removed_items :
+        if item_id in removed_items :
             error_code = 41
             continue
-        elif str(item_id) in added_items and addFlag :
+        elif item_id in added_items and addFlag :
             error_code = 42
             continue 
         
