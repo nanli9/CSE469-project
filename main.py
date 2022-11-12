@@ -8,7 +8,7 @@ import datetime
 import time
 from decimal import Decimal
 import sys
-
+import uuid
 # Path to check the blockchain file
 
 if not ("BCHOC_FILE_PATH" in os.environ):
@@ -20,7 +20,7 @@ file_path = os.environ["BCHOC_FILE_PATH"]
 
 def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info="",addFlag=False):
     # get prehash value
-    
+    print(len(uuid.UUID(case_id).bytes))
     if (os.path.exists(file_path) == False ) :
         init()
     error_code = 0
@@ -66,7 +66,7 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
                 "32sd16sI12sI",
                 pre_sha256,
                 time_stamp,
-                bytes(case_id, "utf-8"),
+                uuid.UUID(case_id).bytes,
                 item_id,
                 state,
                 int(data_length),
@@ -192,12 +192,10 @@ def create_listOfItems(data):
             struct.unpack("d", data[index + 32 : index + 40])[0]
         )
         
-        case_id = (
-            str(struct.unpack("16s", data[index + 40 : index + 56])[0])
-            .split("\\x")[0]
-            .split("'")[1]
-        )
         
+        case_id = (
+            str(uuid.UUID(bytes=struct.unpack("16s", data[index + 40 : index + 56])[0]))
+        )
         item_id = struct.unpack("I", data[index + 56 : index + 60])[0]
         status = (
             str(struct.unpack("12s", data[index + 60 : index + 72])[0])
@@ -248,7 +246,7 @@ def remove(item_id, reason,owner):
             print("Error: Cannot remove an already checked out item.")
             return 12
         else:
-            case_id=(struct.unpack('16s',data[130:146])[0]).decode("utf-8")
+            case_id=str(uuid.UUID(bytes=struct.unpack("16s", data[130 : 146])[0]))
             append(case_id,[item_id],reason,len(owner),"Removed item",owner)
             return 0
 
