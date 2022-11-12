@@ -17,10 +17,9 @@ if not ("BCHOC_FILE_PATH" in os.environ):
 file_path = os.environ["BCHOC_FILE_PATH"]
 # we need to implement these functions
 
-
 def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info="",addFlag=False):
     # get prehash value
-    #print(len(uuid.UUID(case_id).bytes))
+    #print(uuid.UUID(case_id).int)
     if (os.path.exists(file_path) == False ) :
         init()
     error_code = 0
@@ -226,6 +225,7 @@ def remove(item_id, reason,owner):
     bchoc_file_read = open(file_path, "rb")
     data = bchoc_file_read.read()
     listOfEntries = create_listOfItems(data)
+    #print(listOfEntries)
     listOfEntries.reverse()
     item = getItem(listOfEntries, item_id)
     if not item:
@@ -246,7 +246,7 @@ def remove(item_id, reason,owner):
             print("Error: Cannot remove an already checked out item.")
             return 12
         else:
-            case_id=str(uuid.UUID(bytes=struct.unpack("16s", data[130 : 146])[0]))
+            #case_id=str(uuid.UUID(bytes=struct.unpack("16s", data[130 : 146])[0]))
             append(case_id,[item_id],reason,len(owner),"Removed item",owner)
             return 0
 
@@ -273,17 +273,13 @@ def init():
         bchoc_file.write(b"\0")
         bchoc_file.close()
     else:
-        try:
-            error_code = verify()
-            if verify :
-                return error_code
-        except:
-            sys.exit(1)
-        else :
+        error_code = verify()
+        if verify:
+            return error_code
+        else:
             print("Blockchain file found with INITIAL block.")
             return 0
-
-
+       
 def verify():
     #31:missing parent, 32:same parent, 33:unmatch checksum,34:transactions after remove
     error_code=0
@@ -491,7 +487,7 @@ if inputArray[0] == "./bchoc":
                 case_id = inputArray[i + 1]
             if inputArray[i] == "-i":
                 item_id = inputArray[i + 1]
-            if inputArray[i] == "-r":
+            if inputArray[i] == "-r" or inputArray[i] == "--reverse":
                 reverse = True
         log(num_entries, case_id, item_id, reverse)
     elif inputArray[1] == "remove":
