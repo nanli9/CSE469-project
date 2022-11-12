@@ -40,7 +40,11 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         length = struct.unpack("I", data[index + 72 : index + 76])[0]
         index = index + length + 76
     bchoc_file_read.close()
-    pre_sha256 = bytes.fromhex(hashlib.sha256(data[index - length - 76 :]).hexdigest())
+    if len(items) == 1 :
+        pre_sha256 = 0
+        pre_sha256 = pre_sha256.to_bytes(1, 'little')
+    else :
+        pre_sha256 = bytes.fromhex(hashlib.sha256(data[index - length - 76 :]).hexdigest())
     # print(pre_sha256)
     # print(pre_sha256.hex())
 
@@ -188,8 +192,11 @@ def create_listOfItems(data):
             struct.unpack("d", data[index + 32 : index + 40])[0]
         )
         
-        case_id = str(struct.unpack("16s", data[index + 40 : index + 56])[0])
-        case_id = case_id.split("\\x")[0].split("'")[1]
+        case_id = (
+            str(struct.unpack("16s", data[index + 40 : index + 56])[0])
+            .split("\\x")[0]
+            .split("'")[1]
+        )
         
         item_id = struct.unpack("I", data[index + 56 : index + 60])[0]
         status = (
