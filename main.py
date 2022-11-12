@@ -20,7 +20,7 @@ file_path = os.environ["BCHOC_FILE_PATH"]
 
 def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info="",addFlag=False):
     # get prehash value
-    print(len(uuid.UUID(case_id).bytes))
+    #print(len(uuid.UUID(case_id).bytes))
     if (os.path.exists(file_path) == False ) :
         init()
     error_code = 0
@@ -273,9 +273,12 @@ def init():
         bchoc_file.write(b"\0")
         bchoc_file.close()
     else:
-        error_code = verify()
-        if verify :
-            return error_code
+        try:
+            error_code = verify()
+            if verify :
+                return error_code
+        except:
+            sys.exit(1)
         else :
             print("Blockchain file found with INITIAL block.")
             return 0
@@ -500,7 +503,8 @@ if inputArray[0] == "./bchoc":
         if len(inputArray) > 6:
             owner = inputArray[7]
         if reason not in ["RELEASED", "DISPOSED", "DESTROYED"]:
-            exit_code = 1    
+            #exit_code = 1
+            sys.exit(1) 
         elif reason=="RELEASED" and owner == "":
             sys.exit(1)
         else :
