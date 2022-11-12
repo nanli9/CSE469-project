@@ -281,153 +281,155 @@ def init():
             return 0
        
 def verify():
-    #31:missing parent, 32:same parent, 33:unmatch checksum,34:transactions after remove
-    error_code=0
-    bchoc_file_read = open(file_path, "rb")
-    data = bchoc_file_read.read()
-    bad_block_index=0
-    block_info=create_listOfItems(data)[0:]
-    length=len(block_info)
-    errorFound = False
-    removedItems = []
-    checkedInItems = []
-    checkedOutItems = []
-    for i in range(len(block_info)-1):
-        item_id = block_info[i][1]
+    try:
+        #31:missing parent, 32:same parent, 33:unmatch checksum,34:transactions after remove
+        error_code=0
+        bchoc_file_read = open(file_path, "rb")
+        data = bchoc_file_read.read()
+        bad_block_index=0
+        block_info=create_listOfItems(data)[0:]
+        length=len(block_info)
+        errorFound = False
+        removedItems = []
+        checkedInItems = []
+        checkedOutItems = []
+        for i in range(len(block_info)-1):
+            item_id = block_info[i][1]
 
-        # cur_hash=hashlib.sha256(
-        #     (str(block_info[i][4])+str(block_info[i][3])+str(block_info[i][0])+str(block_info[i][1])+str(block_info[i][2])+str(block_info[i][6]))
-        #     .encode()).hexdigest()
+            # cur_hash=hashlib.sha256(
+            #     (str(block_info[i][4])+str(block_info[i][3])+str(block_info[i][0])+str(block_info[i][1])+str(block_info[i][2])+str(block_info[i][6]))
+            #     .encode()).hexdigest()
+                
+            if block_info[i][2] in ["RELEASED", "DISPOSED", "DESTROYED"]:
+                if block_info[i][2] == "RELEASED" and block_info[i][6] == 0:
+                    error_code = 341
+                    bad_block_index = i
+                    break
+                if item_id in removedItems :
+                    error_code=34
+                    bad_block_index=i
+                    break
+                if (item_id not in checkedInItems and  item_id not in checkedOutItems) :
+                    error_code=35
+                    bad_block_index=i
+                    break
+                
+                removedItems.append(item_id)
+                if item_id in checkedInItems :
+                    checkedInItems.remove(item_id)
+                if item_id in checkedOutItems :
+                    checkedOutItems.remove(item_id)
+                
+            elif block_info[i][2] == "CHECKEDIN" :
+                if item_id in removedItems :
+                    error_code=36
+                    bad_block_index=i
+                    break
+                if item_id in checkedInItems :
+                    error_code=37
+                    bad_block_index=i
+                    break
+                checkedInItems.append(item_id)
+                if item_id in checkedOutItems :
+                    checkedOutItems.remove(item_id)
             
-        if block_info[i][2] in ["RELEASED", "DISPOSED", "DESTROYED"]:
-            if block_info[i][2] == "RELEASED" and block_info[i][6] == 0:
-                error_code = 341
-                bad_block_index = i
-                break
-            if item_id in removedItems :
-                error_code=34
-                bad_block_index=i
-                break
-            if (item_id not in checkedInItems and  item_id not in checkedOutItems) :
-                error_code=35
-                bad_block_index=i
-                break
-            
-            removedItems.append(item_id)
-            if item_id in checkedInItems :
+            elif block_info[i][2] == "CHECKEDOUT" :
+                if (item_id in removedItems) or (item_id in checkedOutItems):
+                    error_code=38
+                    bad_block_index=i
+                    break
+                if item_id not in checkedInItems :
+                    error_code=39
+                    bad_block_index=i
+                    break
                 checkedInItems.remove(item_id)
-            if item_id in checkedOutItems :
-                checkedOutItems.remove(item_id)
+                checkedOutItems.append(item_id)    
             
-        elif block_info[i][2] == "CHECKEDIN" :
-            if item_id in removedItems :
-                error_code=36
-                bad_block_index=i
+            elif block_info[i][2] != "INITIAL" :
+                #invalid status
+                    error_code=40
+                    bad_block_index=i
+                    break
+            
+            # print("curr_hash: ",block_info[i][4])
+            # print("pre_hash: ",block_info[i][4])
+            j = i+1          
+            if block_info[i][4]==block_info[j][4]:
+                error_code=31
+                bad_block_index=j
                 break
-            if item_id in checkedInItems :
-                error_code=37
-                bad_block_index=i
-                break
-            checkedInItems.append(item_id)
-            if item_id in checkedOutItems :
-                checkedOutItems.remove(item_id)
+            
+            
+            if block_info[i][5]!=block_info[j][4]:
+                error_code=32
+                bad_block_index=j
+                break 
+                                
+            # print("cur_hash: ", block_info[i][5])
+        # print(error_code)
+        print("Transactions in blockchain: ",length)
+        if(error_code==0):
+            print("State of blockchain: CLEAN")
+            return 0
+        elif error_code==31:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Parent block: ",block_info[bad_block_index-1])
+            print("Two blocks were found with the same parent.")
+            return 31
+        elif error_code==32:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Parent block: NOT FOUND")
+            return 32
+        elif error_code==33:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Block contents do not match block checksum.")
+            return 33
         
-        elif block_info[i][2] == "CHECKEDOUT" :
-            if (item_id in removedItems) or (item_id in checkedOutItems):
-                error_code=38
-                bad_block_index=i
-                break
-            if item_id not in checkedInItems :
-                error_code=39
-                bad_block_index=i
-                break
-            checkedInItems.remove(item_id)
-            checkedOutItems.append(item_id)    
-        
-        elif block_info[i][2] != "INITIAL" :
-            #invalid status
-                error_code=40
-                bad_block_index=i
-                break
-        
-        # print("curr_hash: ",block_info[i][4])
-        # print("pre_hash: ",block_info[i][4])
-        j = i+1          
-        if block_info[i][4]==block_info[j][4]:
-            error_code=31
-            bad_block_index=j
-            break
-        
-        
-        if block_info[i][5]!=block_info[j][4]:
-            error_code=32
-            bad_block_index=j
-            break 
-                            
-        # print("cur_hash: ", block_info[i][5])
-    # print(error_code)
-    print("Transactions in blockchain: ",length)
-    if(error_code==0):
-        print("State of blockchain: CLEAN")
-        return 0
-    elif error_code==31:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Parent block: ",block_info[bad_block_index-1])
-        print("Two blocks were found with the same parent.")
-        return 31
-    elif error_code==32:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Parent block: NOT FOUND")
-        return 32
-    elif error_code==33:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Block contents do not match block checksum.")
-        return 33
-    
-    elif error_code==34:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Trying to remove item which is already removed")
-        return 34
-    elif error_code==341:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Trying to release an item without an owner")
-        return 341
-    elif error_code==35:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Trying to remove item which is not present in the chain")
-        return 35
-    elif error_code==36:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Item checked in after removal from chain.")
-        return 36
-    elif error_code==37:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Item checked in after pre existing checkin.")
-        return 37
-    elif error_code==38:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Item checked out after checkout or removal from chain.")
-        return 38
-    elif error_code==39:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Item checked out without checkin in chain.")
-        return 39
-    elif error_code==40:
-        print("State of blockchain: ERROR")
-        print("Bad block: ",block_info[bad_block_index])
-        print("Block has Invalid status")
-        return 40
-    
+        elif error_code==34:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Trying to remove item which is already removed")
+            return 34
+        elif error_code==341:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Trying to release an item without an owner")
+            return 341
+        elif error_code==35:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Trying to remove item which is not present in the chain")
+            return 35
+        elif error_code==36:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Item checked in after removal from chain.")
+            return 36
+        elif error_code==37:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Item checked in after pre existing checkin.")
+            return 37
+        elif error_code==38:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Item checked out after checkout or removal from chain.")
+            return 38
+        elif error_code==39:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Item checked out without checkin in chain.")
+            return 39
+        elif error_code==40:
+            print("State of blockchain: ERROR")
+            print("Bad block: ",block_info[bad_block_index])
+            print("Block has Invalid status")
+            return 40
+    except:
+        sys.exit(1)
 
 
 # parse the input
