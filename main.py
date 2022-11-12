@@ -20,7 +20,8 @@ file_path = os.environ["BCHOC_FILE_PATH"]
 
 def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info="",addFlag=False):
     # get prehash value
-    if os.path.exists(file_path) == False:
+    
+    if (os.path.exists(file_path) == False ) :
         init()
     error_code = 0
     bchoc_file_read = open(file_path, "rb")
@@ -158,6 +159,11 @@ def log(num_entries, ip_case_id, ip_item_id, reverse):
             break
         if ip_item_id and int(item[1]) != int(ip_item_id):
             continue
+        if ip_case_id :
+            if item[2] == "INITIAL" :
+                continue
+            if item[0] and item[0] not in ip_case_id:
+                continue
         case_id = item[0]
         item_id = item[1]
         status = item[2]
@@ -165,10 +171,9 @@ def log(num_entries, ip_case_id, ip_item_id, reverse):
         
         timeToShow = str(time_stamp).replace(" ","T")+"Z"
         print(
-            f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {timeToShow}\n\n"
+            f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {timeToShow}\n"
         )
         num_entries -= 1
-
     bchoc_file.close()
 
 
@@ -182,11 +187,10 @@ def create_listOfItems(data):
         dateTime = datetime.datetime.fromtimestamp(
             struct.unpack("d", data[index + 32 : index + 40])[0]
         )
-        case_id = (
-            str(struct.unpack("16s", data[index + 40 : index + 56])[0])
-            .split("\\x")[0]
-            .split("'")[1]
-        )
+        
+        case_id = str(struct.unpack("16s", data[index + 40 : index + 56])[0])
+        case_id = case_id.split("\\x")[0].split("'")[1]
+        
         item_id = struct.unpack("I", data[index + 56 : index + 60])[0]
         status = (
             str(struct.unpack("12s", data[index + 60 : index + 72])[0])
@@ -216,8 +220,30 @@ def remove(item_id, reason,owner):
     #print(owner)
     bchoc_file_read = open(file_path, "rb")
     data = bchoc_file_read.read()
-    case_id=(struct.unpack('16s',data[130:146])[0]).decode("utf-8")
-    append(case_id,[item_id],reason,len(owner),"Removed item",owner)
+    listOfEntries = create_listOfItems(data)
+    listOfEntries.reverse()
+    item = getItem(listOfEntries, item_id)
+    if not item:
+        print("Error: Remove failed,item does not exist")
+        return 11
+    status = item[2]
+    case_id = item[0]
+    # Error codes :
+    # 1 -> checkin error
+    #   1 : does not exist error
+    #   2 : item already removed error  
+    #   3 : cannot checkin already checked in item
+    if status:
+        if status in ["RELEASED", "DISPOSED", "DESTROYED"]:
+            print("Error: Cannot remove a removed item.")
+            return 12
+        elif status == "CHECKEDOUT" :
+            print("Error: Cannot remove an already checked out item.")
+            return 12
+        else:
+            case_id=(struct.unpack('16s',data[130:146])[0]).decode("utf-8")
+            append(case_id,[item_id],reason,len(owner),"Removed item",owner)
+            return 0
 
 
 def init():
@@ -275,9 +301,10 @@ def verify():
                 bad_block_index=i
                 break
             if (item_id not in checkedInItems and  item_id not in checkedOutItems) :
-                error_code=34
+                error_code=35
                 bad_block_index=i
                 break
+            
             removedItems.append(item_id)
             if item_id in checkedInItems :
                 checkedInItems.remove(item_id)
@@ -286,11 +313,11 @@ def verify():
             
         elif block_info[i][2] == "CHECKEDIN" :
             if item_id in removedItems :
-                error_code=34
+                error_code=36
                 bad_block_index=i
                 break
             if item_id in checkedInItems :
-                error_code=34
+                error_code=37
                 bad_block_index=i
                 break
             checkedInItems.append(item_id)
@@ -298,31 +325,36 @@ def verify():
                 checkedOutItems.remove(item_id)
         
         elif block_info[i][2] == "CHECKEDOUT" :
-            if item_id in removedItems :
-                error_code=34
+            if (item_id in removedItems) or (item_id in checkedOutItems):
+                error_code=38
                 bad_block_index=i
                 break
             if item_id not in checkedInItems :
-                error_code=34
+                error_code=39
                 bad_block_index=i
                 break
             checkedInItems.remove(item_id)
             checkedOutItems.append(item_id)    
         
+        elif block_info[i][2] != "INITIAL" :
+            #invalid status
+                error_code=40
+                bad_block_index=i
+                break
         
         # print("curr_hash: ",block_info[i][4])
         # print("pre_hash: ",block_info[i][4])
-            j = i+1          
-            if block_info[i][4]==block_info[j][4]:
-                error_code=31
-                bad_block_index=j
-                break
-            
-            
-            if block_info[i][5]!=block_info[j][4]:
-                error_code=32
-                bad_block_index=j
-                break 
+        j = i+1          
+        if block_info[i][4]==block_info[j][4]:
+            error_code=31
+            bad_block_index=j
+            break
+        
+        
+        if block_info[i][5]!=block_info[j][4]:
+            error_code=32
+            bad_block_index=j
+            break 
                             
         # print("cur_hash: ", block_info[i][5])
     # print(error_code)
@@ -350,8 +382,38 @@ def verify():
     elif error_code==34:
         print("State of blockchain: ERROR")
         print("Bad block: ",block_info[bad_block_index])
-        print("Item checked out or checked in after removal from chain.")
+        print("Trying to remove item which is already removed")
         return 34
+    elif error_code==35:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Trying to remove item which is not present in the chain")
+        return 35
+    elif error_code==36:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Item checked in after removal from chain.")
+        return 36
+    elif error_code==37:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Item checked in after pre existing checkin.")
+        return 37
+    elif error_code==38:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Item checked out after checkout or removal from chain.")
+        return 38
+    elif error_code==39:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Item checked out without checkin in chain.")
+        return 39
+    elif error_code==40:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Block has Invalid status")
+        return 40
     
 
 
@@ -423,9 +485,14 @@ if inputArray[0] == "./bchoc":
         owner = ""
         if len(inputArray) > 6:
             owner = inputArray[7]
-        exit_code = remove(item_id, reason,owner)
-        if exit_code :
+        if reason not in ["RELEASED", "DISPOSED", "DESTROYED"]:
+            exit_code = 1    
+        elif reason=="RELEASED" and owner == "":
             sys.exit(1)
+        else :
+            exit_code = remove(item_id, reason,owner)
+            if exit_code :
+                sys.exit(1)
     elif inputArray[1] == "init":
         if len(inputArray) > 2 :
             sys.exit(1)
