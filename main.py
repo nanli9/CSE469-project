@@ -174,9 +174,6 @@ def log(num_entries, ip_case_id, ip_item_id, reverse):
         time_stamp = item[3]
         
         timeToShow = str(time_stamp).replace(" ","T")+"Z"
-        if status== "INITIAL" :
-            num_entries -= 1    
-            continue
         print(
             f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {timeToShow}\n"
         )
@@ -258,7 +255,7 @@ def init():
     if os.path.exists(file_path) == False:
         print("Blockchain file not found. Created INITIAL block.")
         dt = datetime.datetime.now()
-        time_stamp = 0.0
+        time_stamp = dt.timestamp()
         pre_hash = 0
         case_id = 0
         # print(time_stamp)
