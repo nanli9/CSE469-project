@@ -174,6 +174,9 @@ def log(num_entries, ip_case_id, ip_item_id, reverse):
         time_stamp = item[3]
         
         timeToShow = str(time_stamp).replace(" ","T")+"Z"
+        if status== "INITIAL" :
+            num_entries -= 1    
+            continue
         print(
             f"Case: {case_id}\nItem: {item_id}\nAction: {status}\nTime: {timeToShow}\n"
         )
@@ -301,6 +304,10 @@ def verify():
         #     .encode()).hexdigest()
             
         if block_info[i][2] in ["RELEASED", "DISPOSED", "DESTROYED"]:
+            if block_info[i][2] == "RELEASED" and block_info[i][6] == 0:
+                error_code = 341
+                bad_block_index = i
+                break
             if item_id in removedItems :
                 error_code=34
                 bad_block_index=i
@@ -389,6 +396,11 @@ def verify():
         print("Bad block: ",block_info[bad_block_index])
         print("Trying to remove item which is already removed")
         return 34
+    elif error_code==341:
+        print("State of blockchain: ERROR")
+        print("Bad block: ",block_info[bad_block_index])
+        print("Trying to release an item without an owner")
+        return 341
     elif error_code==35:
         print("State of blockchain: ERROR")
         print("Bad block: ",block_info[bad_block_index])
