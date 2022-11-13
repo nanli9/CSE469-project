@@ -19,7 +19,7 @@ file_path = os.environ["BCHOC_FILE_PATH"]
 
 def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info="",addFlag=False):
     # get prehash value
-    print(uuid.UUID(case_id))
+    #print(data_length)
     if (os.path.exists(file_path) == False ) :
         init()
     error_code = 0
@@ -84,6 +84,7 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         print(f"  Status: {ip_state}")
         if(info!=""):
             bchoc_file.write(bytes(info, "utf-8"))
+            bchoc_file.write(bytes(1))
             print("  Owner info: ",info)
         print("  Time of action:",str(datetime.datetime.fromtimestamp(time_stamp)).replace(" ","T")+"Z")
     bchoc_file.close()
@@ -248,7 +249,10 @@ def remove(item_id, reason,owner):
             return 12
         else:
             #case_id=str(uuid.UUID(bytes=struct.unpack("16s", data[130 : 146])[0]))
-            append(case_id,[item_id],reason,len(owner),"Removed item",owner)
+            data_length=len(owner)
+            if len(owner)!=0:
+                data_length=len(owner)+1
+            append(case_id,[item_id],reason,data_length,"Removed item",owner)
             return 0
 
 
