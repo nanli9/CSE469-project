@@ -19,7 +19,7 @@ file_path = os.environ["BCHOC_FILE_PATH"]
 
 def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Added item: ", info="",addFlag=False):
     # get prehash value
-    #print(uuid.UUID(case_id).int)
+    print(uuid.UUID(case_id))
     if (os.path.exists(file_path) == False ) :
         init()
     error_code = 0
@@ -32,7 +32,6 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         added_items.append(item[1])
         if item[2] in ["RELEASED", "DISPOSED", "DESTROYED"] :
             removed_items.append(item[1])
-    
     index = 0
     length = 0
     while index <= (len(data) - 1):
@@ -46,7 +45,9 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
         pre_sha256 = bytes.fromhex(hashlib.sha256(data[index - length - 76 :]).hexdigest())
     # print(pre_sha256)
     # print(pre_sha256.hex())
-
+    if ip_state in ["RELEASED", "DISPOSED", "DESTROYED"]:
+        pre_sha256=0
+        pre_sha256 = pre_sha256.to_bytes(1, 'little')
     bchoc_file = open(file_path, "ab")
     print("Case: ", case_id)
     for i in item_list:
@@ -65,7 +66,7 @@ def append(case_id, item_list, ip_state="CHECKEDIN", data_length=0,message="Adde
                 "32sd16sI12sI",
                 pre_sha256,
                 time_stamp,
-                uuid.UUID(case_id).bytes,
+                bytes(reversed(uuid.UUID(case_id).bytes)),
                 item_id,
                 state,
                 int(data_length),
@@ -193,7 +194,7 @@ def create_listOfItems(data):
         
         
         case_id = (
-            str(uuid.UUID(bytes=struct.unpack("16s", data[index + 40 : index + 56])[0]))
+            str(uuid.UUID(bytes=bytes(reversed(struct.unpack("16s", data[index + 40 : index + 56])[0]))))
         )
         item_id = struct.unpack("I", data[index + 56 : index + 60])[0]
         status = (
@@ -273,12 +274,15 @@ def init():
         bchoc_file.write(b"\0")
         bchoc_file.close()
     else:
-        error_code = verify()
-        if verify:
-            return error_code
-        else:
-            print("Blockchain file found with INITIAL block.")
-            return 0
+        try:
+            error_code = verify()
+            if verify:
+                return error_code
+            else:
+                print("Blockchain file found with INITIAL block.")
+                return 0
+        except:
+            sys.exit(1)
        
 def verify():
     try:
